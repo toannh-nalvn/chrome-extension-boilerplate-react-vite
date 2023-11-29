@@ -9,7 +9,8 @@ const manifest = {
   name: packageJson.name,
   version: packageJson.version,
   description: packageJson.description,
-  permissions: ['storage', 'sidePanel'],
+  permissions: ['tabs', 'activeTab', 'storage', 'scripting', 'sidePanel'],
+  host_permissions: ['http://*/*', 'https://*/*'],
   side_panel: {
     default_path: 'src/pages/sidepanel/index.html',
   },

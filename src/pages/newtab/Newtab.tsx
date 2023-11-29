@@ -19,7 +19,7 @@ const Newtab = () => {
       <header className="App-header" style={{ color: theme === 'light' ? '#000' : '#fff' }}>
         <img src={logo} className="App-logo" alt="logo" />
         <p>
-          Edit <code>src/pages/newtab/Newtab.tsx</code> and save to reload.
+          Edit <code>src/pages/newtab/Newtab2.tsx</code> and save to reload.
         </p>
         <a
           className="App-link"
