@@ -24,17 +24,21 @@ const MODE = {
   REMOTE: 'REMOTE',
   DAY_OFF: 'DAYOFF',
 };
+
+const APPROVAL_STATUS = {
+  CANCELED: 'CANCELED',
+};
+
 const date = new Date();
 
 const InfoUser = () => {
   const currentMonth = date.getMonth() + 1;
-  const firstDay = new Date(date.getFullYear(), date.getMonth(), 1).toLocaleDateString('fr-CA');
-  const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).toLocaleDateString('fr-CA');
-
+  const [month, setMonth] = useState(currentMonth.toString());
+  const firstDay = new Date(date.getFullYear(), parseInt(month) - 1, 1).toLocaleDateString('fr-CA');
+  const lastDay = new Date(date.getFullYear(), parseInt(month), 0).toLocaleDateString('fr-CA');
   const checkInCheckOutDays = useGetCheckInCheckOutPages(firstDay, lastDay);
   const workTimeRegisterDays = useGetWorkTimeRegistersPages(firstDay, lastDay);
   const userQuery = useGetUserInfo();
-  const [month, setMonth] = useState(currentMonth.toString());
   const [days, setDays] = useState([]);
   const daysOfWeek = ['Chủ nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
   const formatDate = new Intl.DateTimeFormat('en', {
@@ -43,7 +47,7 @@ const InfoUser = () => {
     year: 'numeric',
   });
 
-  const handleChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const onMonthChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     setMonth(event.target.value);
   };
 
@@ -59,7 +63,12 @@ const InfoUser = () => {
 
     if (checkInCheckOutDayResults?.length > 0) {
       const result = checkInCheckOutDayResults.find(result => result.day === formattedDay);
-      return result?.checkIn;
+
+      if (result) {
+        return result?.checkIn;
+      } else {
+        return '---';
+      }
     }
   };
 
@@ -69,7 +78,12 @@ const InfoUser = () => {
 
     if (checkInCheckOutDayResults?.length > 0) {
       const result = checkInCheckOutDayResults.find(result => result.day === formattedDay);
-      return result?.checkOut;
+
+      if (result) {
+        return result?.checkOut;
+      } else {
+        return '---';
+      }
     }
   };
 
@@ -84,140 +98,159 @@ const InfoUser = () => {
       for (const workTimeRegisterDay of dayOffList) {
         for (const timeInterval of workTimeRegisterDay.timeIntervals) {
           if (timeInterval.day === formattedDay) {
-            return `${timeInterval?.from} - ${timeInterval?.to}`;
-          }
-        }
-      }
-    }
-  };
+            const result =
+              workTimeRegisterDay?.approvalStatus === APPROVAL_STATUS.CANCELED ? (
+                <s>{`${timeInterval?.from} - ${timeInterval?.to}`}</s>
+              ) : (
+                `${timeInterval?.from} - ${timeInterval?.to}`
+              );
 
-  const getHourFromString = (s: string) => {
-    const splitRowObject = s.split(':');
-    return parseInt(splitRowObject[0]);
-  };
-
-  const getMinuteFromString = (s: string) => {
-    const splitRowObject = s.split(':');
-    return parseInt(splitRowObject[1]);
-  };
-
-  const getSecondFromString = (s: string) => {
-    const splitRowObject = s.split(':');
-    return parseInt(splitRowObject[2]);
-  };
-
-  const isRemoteTime = (rowDay, mode) => {
-    const formattedDay = rowDay.toLocaleDateString('fr-CA');
-    const workTimeRegisterDayResults = workTimeRegisterDays.data?.data?.results;
-    const remoteDayList = workTimeRegisterDayResults?.filter(
-      workTimeRegisterDayResult => workTimeRegisterDayResult.type === mode,
-    );
-
-    if (remoteDayList?.length > 0) {
-      for (const workTimeRegisterDay of remoteDayList) {
-        for (const timeInterval of workTimeRegisterDay.timeIntervals) {
-          if (timeInterval.day === formattedDay) {
-            return true;
+            return result;
           }
         }
       }
     }
 
-    return false;
+    return '---';
   };
 
-  const isDayOffTime = (rowDay, mode) => {
-    const formattedDay = rowDay.toLocaleDateString('fr-CA');
-    const workTimeRegisterDayResults = workTimeRegisterDays.data?.data?.results;
-    const dayOffList = workTimeRegisterDayResults?.filter(
-      workTimeRegisterDayResult => workTimeRegisterDayResult.type === mode,
-    );
+  // const getHourFromString = (s: string) => {
+  //   const splitRowObject = s.split(':');
+  //   return parseInt(splitRowObject[0]);
+  // };
 
-    if (dayOffList?.length > 0) {
-      for (const workTimeRegisterDay of dayOffList) {
-        for (const timeInterval of workTimeRegisterDay.timeIntervals) {
-          if (timeInterval.day === formattedDay) {
-            return true;
-          }
-        }
-      }
-    }
+  // const getMinuteFromString = (s: string) => {
+  //   const splitRowObject = s.split(':');
+  //   return parseInt(splitRowObject[1]);
+  // };
 
-    return false;
-  };
+  // const getSecondFromString = (s: string) => {
+  //   const splitRowObject = s.split(':');
+  //   return parseInt(splitRowObject[2]);
+  // };
 
-  const countRemoteTime = (rowDay, mode) => {
-    const formattedDay = rowDay.toLocaleDateString('fr-CA');
-    const workTimeRegisterDayResults = workTimeRegisterDays.data?.data?.results;
-    const dayList = workTimeRegisterDayResults?.filter(
-      workTimeRegisterDayResult => workTimeRegisterDayResult.type === mode,
-    );
+  // const isRemoteTime = (rowDay, mode) => {
+  //   const formattedDay = rowDay.toLocaleDateString('fr-CA');
+  //   const workTimeRegisterDayResults = workTimeRegisterDays.data?.data?.results;
+  //   const remoteDayList = workTimeRegisterDayResults?.filter(
+  //     workTimeRegisterDayResult => workTimeRegisterDayResult.type === mode,
+  //   );
 
-    if (dayList?.length > 0) {
-      for (const workTimeRegisterDay of dayList) {
-        for (const timeInterval of workTimeRegisterDay.timeIntervals) {
-          if (timeInterval.day === formattedDay) {
-            const checkOutDateTime = new Date(`${timeInterval.day} ${timeInterval.to}`);
-            const checkInDateTime = new Date(`${timeInterval.day} ${timeInterval.from}`);
+  //   if (remoteDayList?.length > 0) {
+  //     for (const workTimeRegisterDay of remoteDayList) {
+  //       for (const timeInterval of workTimeRegisterDay.timeIntervals) {
+  //         if (timeInterval.day === formattedDay && workTimeRegisterDay.approvalStatus !== APPROVAL_STATUS.CANCELED) {
+  //           return true;
+  //         }
+  //       }
+  //     }
+  //   }
 
-            const diff = Math.abs(checkOutDateTime.getTime() - checkInDateTime.getTime());
-            const minutes = Math.floor(diff / 1000 / 60) - 90;
-            const hours = Math.floor(minutes / 60);
+  //   return false;
+  // };
 
-            if (hours && hours > 0) {
-              return `Chúc mừng bạn đi làm đủ công với thời gian ${hours} giờ (chính xách là ${minutes} phút)`;
-            } else {
-              return `Không đủ công`;
-            }
-          }
-        }
-      }
-    }
+  // const countRemoteTime = (rowDay, mode) => {
+  //   const formattedDay = rowDay.toLocaleDateString('fr-CA');
+  //   const workTimeRegisterDayResults = workTimeRegisterDays.data?.data?.results;
+  //   const dayList = workTimeRegisterDayResults?.filter(
+  //     workTimeRegisterDayResult => workTimeRegisterDayResult.type === mode,
+  //   );
 
-    return 0;
-  };
+  //   if (dayList?.length > 0) {
+  //     for (const workTimeRegisterDay of dayList) {
+  //       for (const timeInterval of workTimeRegisterDay.timeIntervals) {
+  //         if (timeInterval.day === formattedDay) {
+  //           const checkOutDateTime = new Date(`${timeInterval.day} ${timeInterval.to}`);
+  //           const checkInDateTime = new Date(`${timeInterval.day} ${timeInterval.from}`);
+
+  //           const diff = Math.abs(checkOutDateTime.getTime() - checkInDateTime.getTime());
+  //           const minutes = Math.floor(diff / 1000 / 60) - 90;
+  //           const hours = Math.floor(minutes / 60);
+
+  //           if (hours && hours > 0) {
+  //             return `Chúc mừng bạn đi làm đủ công với thời gian ${hours} giờ (chính xách là ${minutes} phút)`;
+  //           } else {
+  //             return `Không đủ công`;
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+
+  //   return 0;
+  // };
 
   const calculatorSumTimeWorking = (rowDay: Date) => {
-    if (isRemoteTime(rowDay, MODE.REMOTE)) {
-      return countRemoteTime(rowDay, MODE.REMOTE);
-    } else if (isDayOffTime(rowDay, MODE.DAY_OFF)) {
-      return countRemoteTime(rowDay, MODE.DAY_OFF);
+    console.log(rowDay);
+    return 'Đang tìm giải pháp';
+
+    // if (rowDay.getDate() === 9) {
+    //   console.log(rowDay);
+
+    //   if (isRemoteTime(rowDay, MODE.REMOTE)) {
+    //     console.log('isRemoteTime');
+    //   } else if (isDayOffTime(rowDay, MODE.DAY_OFF)) {
+    //     console.log('isDayOffTime');
+    //   } else {
+    //     console.log('else');
+    //   }
+    // }
+
+    // if (isRemoteTime(rowDay, MODE.REMOTE)) {
+    //   return countRemoteTime(rowDay, MODE.REMOTE);
+    // } else if (isDayOffTime(rowDay, MODE.DAY_OFF)) {
+    //   return countRemoteTime(rowDay, MODE.DAY_OFF);
+    // } else {
+    //   const checkInTime = getCheckInDateTime(rowDay);
+    //   const checkOutTime = getCheckOutDateTime(rowDay);
+    //   if (checkInTime) {
+    //     const checkInDateTime = new Date(
+    //       rowDay.getFullYear(),
+    //       rowDay.getMonth(),
+    //       rowDay.getDate(),
+    //       getHourFromString(checkInTime),
+    //       getMinuteFromString(checkInTime),
+    //       getSecondFromString(checkInTime),
+    //     );
+
+    //     if (checkOutTime) {
+    //       const checkOutDateTime = new Date(
+    //         rowDay.getFullYear(),
+    //         rowDay.getMonth(),
+    //         rowDay.getDate(),
+    //         getHourFromString(checkOutTime),
+    //         getMinuteFromString(checkOutTime),
+    //         getSecondFromString(checkOutTime),
+    //       );
+
+    //       const diff = Math.abs(checkOutDateTime.getTime() - checkInDateTime.getTime());
+    //       const minutes = Math.floor(diff / 1000 / 60) - 90;
+    //       const hours = Math.floor(minutes / 60);
+
+    //       if (hours && hours > 0) {
+    //         return `Chúc mừng bạn đi làm đủ công với thời gian ${hours} giờ (chính xác là ${minutes} phút)`;
+    //       } else {
+    //         return `Không đủ công`;
+    //       }
+    //     }
+    //   }
+
+    //   return 'Có lỗi xảy ra';
+    // }
+  };
+
+  const isWeekends = (rowDay: Date) => {
+    const dayOfWeek = rowDay.getDay();
+    const isWeekend = dayOfWeek === 6 || dayOfWeek === 0;
+
+    return isWeekend;
+  };
+
+  const renderResultCols = (rowDay: Date) => {
+    if (isWeekends(rowDay)) {
+      return <p style={{ color: 'green' }}>Cuối tuần</p>;
     } else {
-      const checkInTime = getCheckInDateTime(rowDay);
-      const checkOutTime = getCheckOutDateTime(rowDay);
-      if (checkInTime) {
-        const checkInDateTime = new Date(
-          rowDay.getFullYear(),
-          rowDay.getMonth(),
-          rowDay.getDate(),
-          getHourFromString(checkInTime),
-          getMinuteFromString(checkInTime),
-          getSecondFromString(checkInTime),
-        );
-
-        if (checkOutTime) {
-          const checkOutDateTime = new Date(
-            rowDay.getFullYear(),
-            rowDay.getMonth(),
-            rowDay.getDate(),
-            getHourFromString(checkOutTime),
-            getMinuteFromString(checkOutTime),
-            getSecondFromString(checkOutTime),
-          );
-
-          const diff = Math.abs(checkOutDateTime.getTime() - checkInDateTime.getTime());
-          const minutes = Math.floor(diff / 1000 / 60) - 90;
-          const hours = Math.floor(minutes / 60);
-
-          if (hours && hours > 0) {
-            return `Chúc mừng bạn đi làm đủ công với thời gian ${hours} giờ (chính xác là ${minutes} phút)`;
-          } else {
-            return `Không đủ công`;
-          }
-        }
-      }
-
-      return 'Có lỗi xảy ra';
+      return calculatorSumTimeWorking(rowDay);
     }
   };
 
@@ -235,7 +268,7 @@ const InfoUser = () => {
           Chào, {userQuery.data?.data?.username}
         </Heading>
         <Divider />
-        <Select placeholder="Chọn tháng" onChange={handleChange} defaultValue={month} disabled>
+        <Select placeholder="Chọn tháng" onChange={onMonthChange} defaultValue={month}>
           {[...Array(12).keys()].map(v => (
             <option key={`${v + 1}`} value={`${v + 1}`}>{`Tháng ${v + 1}`}</option>
           ))}
@@ -262,7 +295,7 @@ const InfoUser = () => {
                   <Td>{getCheckOutDateTime(day)}</Td>
                   <Td>{getWorkTimeRegisterDateTime(day, MODE.DAY_OFF)}</Td>
                   <Td>{getWorkTimeRegisterDateTime(day, MODE.REMOTE)}</Td>
-                  <Td>{calculatorSumTimeWorking(day)}</Td>
+                  <Td>{renderResultCols(day)}</Td>
                 </Tr>
               ))}
             </Tbody>
